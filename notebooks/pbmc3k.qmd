@@ -335,3 +335,53 @@ Save.
 # `compression='gzip'` saves disk space, and slightly slows down writing and subsequent reading
 adata.write(results_file, compression="gzip")
 ```
+
+# AnnData
+
+[Getting started with anndata](https://anndata.readthedocs.io/en/latest/tutorials/notebooks/getting-started.html).
+
+```{python}
+import anndata as ad
+
+adata = sc.read(results_file)
+adata
+```
+
+Number of barcodes.
+
+```{python}
+adata.n_obs
+```
+
+Number of genes.
+
+```{python}
+adata.n_vars
+```
+
+Barcodes.
+
+```{python}
+adata.obs.index
+```
+
+Gene IDs.
+
+```{python}
+adata.var.gene_ids
+```
+
+Subset.
+
+```{python}
+adata[
+  ["AAACATACAACCAC-1", "TTTGCATGCCTCAC-1"],
+  ["TNFRSF4", "PRMT2"]
+].var
+```
+
+Number of genes.
+
+```{python}
+print(adata.obs.n_genes[:10])
+```

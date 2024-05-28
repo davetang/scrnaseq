@@ -1,0 +1,181 @@
+---
+title: "Preprocessing and clustering 3k PBMCs"
+format: html
+jupyter: python3
+---
+
+# Using scanpy
+
+[Preprocessing and clustering 3k PBMCs](https://scanpy-tutorials.readthedocs.io/en/latest/pbmc3k.html)
+
+```{python}
+```
+
+
+## Initialise
+
+Use [reticulate](https://rstudio.github.io/reticulate/).
+
+```{r load_reticulate}
+library(reticulate)
+use_python("/usr/bin/python3")
+reticulate::py_config()
+```
+
+Load Python modules.
+
+```{python}
+import pandas as pd
+import scanpy as sc
+sc.settings.verbosity = 3  # verbosity: errors (0), warnings (1), info (2), hints (3)
+sc.logging.print_header()
+sc.settings.set_figure_params(dpi=80, facecolor="white")
+```
+
+File that will store the analysis results.
+
+```{python}
+results_file = "../results/pbmc3k.h5ad"
+```
+
+## Load data
+
+Read in the count matrix into an `AnnData` object, which holds many slots for annotations and different representations of the data. It also comes with its own HDF5-based file format; `.h5ad`; see [scanpy.read_10x_mtx](https://scanpy.readthedocs.io/en/stable/generated/scanpy.read_10x_mtx.html) for more information.
+
+```{python}
+adata = sc.read_10x_mtx(
+    "../data/filtered_gene_bc_matrices/hg19/",  # the directory with the `.mtx` file
+    var_names="gene_symbols",  # use gene symbols for the variable names (variables-axis index)
+    cache=True,  # write a cache file for faster subsequent reading
+)
+
+adata
+```
+
+## Pre-processing
+
+Show those genes that yield the highest fraction of counts in each single cell, across all cells.
+
+```{python}
+sc.pl.highest_expr_genes(adata, n_top=20)
+```
+
+Basic filtering:
+
+```{python}
+sc.pp.filter_cells(adata, min_genes=200)
+sc.pp.filter_genes(adata, min_cells=3)
+```
+
+With pp.calculate_qc_metrics, we can compute many metrics very efficiently.
+
+```{python}
+# annotate the group of mitochondrial genes as "mt"
+adata.var["mt"] = adata.var_names.str.startswith("MT-")
+sc.pp.calculate_qc_metrics(
+    adata, qc_vars=["mt"], percent_top=None, log1p=False, inplace=True
+)
+```
+
+A violin plot of some of the computed quality measures:
+
+* the number of genes expressed in the count matrix
+* the total counts per cell
+* the percentage of counts in mitochondrial genes
+
+```{python}
+sc.pl.violin(
+    adata,
+    ["n_genes_by_counts", "total_counts", "pct_counts_mt"],
+    jitter=0.4,
+    multi_panel=True,
+)
+```
+
+Remove cells that have too many mitochondrial genes expressed or too many total counts:
+
+```{python}
+sc.pl.scatter(adata, x="total_counts", y="pct_counts_mt")
+sc.pl.scatter(adata, x="total_counts", y="n_genes_by_counts")
+```
+
+Actually do the filtering by slicing the AnnData object.
+
+```{python}
+adata = adata[adata.obs.n_genes_by_counts < 2500, :]
+adata = adata[adata.obs.pct_counts_mt < 5, :].copy()
+```
+
+Total-count normalize (library-size correct) the data matrix $X$ to 10,000 reads per cell, so that counts become comparable among cells.
+
+```{python}
+sc.pp.normalize_total(adata, target_sum=1e4)
+```
+
+Logarithmize the data:
+
+```{python}
+sc.pp.log1p(adata)
+```
+
+Identify highly-variable genes.
+
+```{python}
+sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
+```
+
+```{python}
+sc.pl.highly_variable_genes(adata)
+```
+
+Set the `.raw` attribute of the `AnnData` object to the normalized and logarithmized raw gene expression for later use in differential testing and visualizations of gene expression. This simply freezes the state of the `AnnData` object. You can get back an `AnnData` of the object in `.raw` by calling `.raw.to_adata()`.
+
+```{python}
+adata.raw = adata
+```
+
+Actually do the filtering.
+
+```{python}
+adata = adata[:, adata.var.highly_variable]
+```
+
+Regress out effects of total counts per cell and the percentage of mitochondrial genes expressed. Scale the data to unit variance.
+
+```{python}
+sc.pp.regress_out(adata, ["total_counts", "pct_counts_mt"])
+```
+
+Scale each gene to unit variance. Clip values exceeding standard deviation 10.
+
+```{python}
+sc.pp.scale(adata, max_value=10)
+```
+
+## Principal component analysis
+
+Reduce the dimensionality of the data by running principal component analysis (PCA), which reveals the main axes of variation and denoises the data.
+
+```{python}
+sc.tl.pca(adata, svd_solver="arpack")
+```
+
+We can make a scatter plot in the PCA coordinates, but we will not use that later on.
+
+```{python}
+sc.pl.pca(adata, color="CST3")
+```
+
+Let us inspect the contribution of single PCs to the total variance in the data. This gives us information about how many PCs we should consider in order to compute the neighborhood relations of cells, e.g. used in the clustering function `sc.tl.louvain()` or tSNE `sc.tl.tsne()`. In our experience, often a rough estimate of the number of PCs does fine.
+
+```{python}
+sc.pl.pca_variance_ratio(adata, log=True)
+```
+
+Save the result.
+
+```{python}
+adata.write(results_file)
+```
+
+

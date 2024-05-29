@@ -10,3 +10,4 @@ data/pbmc3k_raw_gene_bc_matrices.tar.gz
 data/raw_gene_bc_matrices/
 notebooks/cache/
 results/pbmc3k.h5ad
+data/*.h5ad

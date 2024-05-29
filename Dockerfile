@@ -45,3 +45,4 @@ RUN R -q -e 'install.packages("hdf5r")'
 RUN R -q -e 'BiocManager::install("glmGamPoi")'
 RUN pip install scanpy==1.10.1 scvi-tools==1.1.2 spatialdata==0.1.2 celltypist==1.6.2
 RUN R -q -e 'remotes::install_github("immunogenomics/presto")'
+RUN R -q -e 'install.packages("harmony", repos = "https://cran.ism.ac.jp/")'

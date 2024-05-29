@@ -1,0 +1,65 @@
+---
+title: "AnnData"
+format: html
+jupyter: python3
+---
+
+# AnnData
+
+## Initialise
+
+Use [reticulate](https://rstudio.github.io/reticulate/).
+
+```{r load_reticulate}
+library(reticulate)
+use_python("/usr/bin/python3")
+reticulate::py_config()
+```
+
+Load Python modules.
+
+```{python}
+import pandas as pd
+import scanpy as sc
+sc.settings.verbosity = 3  # verbosity: errors (0), warnings (1), info (2), hints (3)
+```
+
+## Load data
+
+[scanpy.read_h5ad](https://scanpy.readthedocs.io/en/stable/generated/scanpy.read_h5ad.html).
+
+```{python}
+adata = sc.read_h5ad("../data/HTA08_v01_A05_Science_human_fig1.h5ad")
+adata
+```
+
+## Access data
+
+Observational data.
+
+```{r adata_obs}
+py$adata$obs
+```
+
+UMAP coordinates.
+
+```{python}
+adata.obsm['X_umap'].shape
+```
+
+Plot in R.
+
+```{r fig.width=8, fig.height=7}
+library(ggplot2)
+
+py$adata$obsm['X_umap'] |>
+  tibble::as_tibble() |>
+  cbind(py$adata$obs) |>
+  ggplot(aes(V1, V2, colour = Anno_level_2)) +
+  geom_point() +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  labs(x = "UMAP1", y = "UMAP2") +
+  NULL
+```
+

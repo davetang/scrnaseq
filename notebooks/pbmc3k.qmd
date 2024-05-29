@@ -385,3 +385,49 @@ Number of genes.
 ```{python}
 print(adata.obs.n_genes[:10])
 ```
+
+# Using Seurat
+
+[Seurat using sctransform](https://satijalab.org/seurat/articles/sctransform_vignette.html).
+
+```{r load_seurat}
+library(Seurat)
+library(ggplot2)
+library(sctransform)
+```
+
+Entire Seurat workflow.
+
+```{r seurat_workflow}
+Read10X(data.dir = "../data/filtered_gene_bc_matrices/hg19/") |>
+  CreateSeuratObject() |>
+  PercentageFeatureSet(pattern = "^MT-", col.name = "percent.mt") |>
+  SCTransform(vars.to.regress = "percent.mt") |>
+  RunPCA() |>
+  FindNeighbors(dims = 1:30) |>
+  RunUMAP(dims = 1:30) |>
+  FindClusters() -> pbmc
+
+pbmc
+```
+
+Assays `SCT` and `RNA`.
+
+```{r seurat_assay}
+pbmc[['RNA']]
+pbmc[['SCT']]
+```
+
+Seurat v5 assays store data in [layers](https://satijalab.org/seurat/articles/seurat5_integration.html). These layers can store raw, un-normalized counts (layer='counts'), normalized data (layer='data'), or z-scored/variance-stabilized data (layer='scale.data'). We can load in the data, remove low-quality cells, and obtain predicted cell annotations (which will be useful for assessing integration later), using our Azimuth pipeline.
+
+```{r seurat_layer}
+pbmc[['RNA']]$counts
+```
+
+UMAP plot.
+
+```{r dimplot_umap}
+DimPlot(pbmc, reduction = "umap")
+```
+
+See the [Seurat v5 Command Cheat Sheet](https://satijalab.org/seurat/articles/seurat5_essential_commands.html) for useful commands.

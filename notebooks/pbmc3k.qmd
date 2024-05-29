@@ -347,6 +347,13 @@ adata = sc.read(results_file)
 adata
 ```
 
+* `obs` and `var` correspond to observation and variable level data
+* `obsm` and `varm` correspond to observation and variable-level matrices
+* `uns` is for any unstructured metadata
+* `obsp` is for pairwise annotation of observations
+
+Not in the example above but layers is for storing different forms of the original core data, perhaps one that is normalized and one that is not.
+
 Number of barcodes.
 
 ```{python}
@@ -384,6 +391,18 @@ Number of genes.
 
 ```{python}
 print(adata.obs.n_genes[:10])
+```
+
+Unstructured metadata.
+
+```{python}
+adata.uns['leiden']
+```
+
+Access using R.
+
+```{r r_adata_obs}
+py$adata$obs
 ```
 
 # Using Seurat

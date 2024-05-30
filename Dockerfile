@@ -47,5 +47,6 @@ RUN pip install scanpy==1.10.1 scvi-tools==1.1.2 spatialdata==0.1.2 celltypist==
 RUN R -q -e 'remotes::install_github("immunogenomics/presto")'
 RUN R -q -e 'install.packages("harmony", repos = "https://cran.ism.ac.jp/")'
 RUN R -q -e 'remotes::install_github("satijalab/seurat-data")'
+RUN R -q -e 'BiocManager::install("multtest"); install.packages("metap")'
 
 COPY --chown=rstudio:rstudio rstudio-prefs.json /home/rstudio/.config/rstudio

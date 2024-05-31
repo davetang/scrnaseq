@@ -156,6 +156,13 @@ Reduce the dimensionality of the data by running principal component analysis (P
 sc.tl.pca(adata, svd_solver="arpack")
 ```
 
+Principal components store in `X_umap`.
+
+```{python}
+adata.obsm['X_pca'].shape
+```
+
+
 We can make a scatter plot in the PCA coordinates, but we will not use that later on.
 
 ```{python}

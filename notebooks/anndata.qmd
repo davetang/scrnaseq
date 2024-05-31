@@ -35,6 +35,29 @@ adata
 
 ## Access data
 
+Raw data.
+
+```{python}
+adata.X
+```
+
+Cell and gene names.
+
+```{python}
+adata.obs_names
+adata.var_names
+```
+
+
+[Compressed sparse matrix](https://en.wikipedia.org/wiki/Sparse_matrix)
+
+```{r}
+library(Matrix)
+mat <- py$adata$X
+class(mat)
+dim(mat)
+```
+
 Observational data.
 
 ```{r adata_obs}

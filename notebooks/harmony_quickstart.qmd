@@ -95,9 +95,44 @@ and 293t) come from pure cell lines while the *half* dataset is a 50:50
 mixture of Jurkat and HEK293T cells. We inferred cell type with the canonical 
 marker XIST, since the two cell lines come from 1 male and 1 female donor. 
 
-* support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/jurkat
-* support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/293t
-* support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/jurkat:293t_50:50
+```{r download_10x}
+download_10x <- function(url, outfile, md5){
+  if(!file.exists(outfile)){
+    download.file(url = url, destfile = outfile)
+  }
+  stopifnot(tools::md5sum(outfile) == md5)
+}
+```
+
+* [Jurkat cells](https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/jurkat)
+
+```{r download_jurkat_matrix}
+download_10x(
+  url = "https://cf.10xgenomics.com/samples/cell-exp/1.1.0/jurkat/jurkat_filtered_gene_bc_matrices.tar.gz",
+  outfile = "../data/jurkat_filtered_gene_bc_matrices.tar.gz",
+  md5 = "bbbf0740a19355b5eca96fe541b48ba0"
+)
+```
+
+* [293T Cells](https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/293t)
+
+```{r download_293t_matrix}
+download_10x(
+  url = "https://cf.10xgenomics.com/samples/cell-exp/1.1.0/293t/293t_filtered_gene_bc_matrices.tar.gz",
+  outfile = "../data/293t_filtered_gene_bc_matrices.tar.gz",
+  md5 = "4ed77b8482c900fb9a9032efc9bf1e0d"
+)
+```
+
+* [50%:50% Jurkat:293T Cell Mixture](https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/jurkat:293t_50:50)
+
+```{r download_mixture_matrix}
+download_10x(
+  url = "https://cf.10xgenomics.com/samples/cell-exp/1.1.0/jurkat:293t_50:50/jurkat:293t_50:50_filtered_gene_bc_matrices.tar.gz",
+  outfile = "../data/jurkat:293t_50:50_filtered_gene_bc_matrices.tar.gz",
+  md5 = "02db294dc23668dd4933e9422ef60e57"
+)
+```
 
 We library normalized the cells, log transformed the counts, and scaled the 
 genes. Then we performed PCA and kept the top 20 PCs. The PCA embeddings and 

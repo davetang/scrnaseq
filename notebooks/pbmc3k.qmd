@@ -162,8 +162,9 @@ Principal components store in `X_umap`.
 adata.obsm['X_pca'].shape
 ```
 
-
 We can make a scatter plot in the PCA coordinates, but we will not use that later on.
+
+[scanpy.pl.pca](https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.pca.html) produces a scatter plot in PCA coordinates. The `color` parameter accepts keys for annotations of observations/cells or variables/genes; _CST3_ is the gene for cystatin C.
 
 ```{python}
 sc.pl.pca(adata, color="CST3")
@@ -185,6 +186,15 @@ adata.write(results_file)
 
 Let us compute the neighborhood graph of cells using the PCA representation of the data matrix. You might simply use default values here. For the sake of reproducing Seurat’s results, let’s take the following values.
 
+[scanpy.pp.neighbors](https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pp.neighbors.html):
+
+> Computes the nearest neighbors distance matrix and a neighborhood graph of observations [McInnes et al., 2018].
+>
+> The neighbor search efficiency of this heavily relies on UMAP [McInnes et al., 2018], which also provides a method for estimating connectivities of data points - the connectivity of the manifold (method=='umap'). If method=='gauss', connectivities are computed according to Coifman et al. [2005], in the adaption of Haghverdi et al. [2016].
+
+* `n_neighbors` (default: 15) - The size of local neighborhood (in terms of number of neighboring data points) used for manifold approximation. Larger values result in more global views of the manifold, while smaller values result in more local data being preserved. In general values should be in the range 2 to 100. If knn is True, number of nearest neighbors to be searched. If knn is False, a Gaussian kernel width is set to the distance of the n_neighbors neighbor.
+* `n_pcs` - Use this many PCs.
+
 ```{python}
 sc.pp.neighbors(adata, n_neighbors=10, n_pcs=40)
 ```
@@ -192,6 +202,24 @@ sc.pp.neighbors(adata, n_neighbors=10, n_pcs=40)
 ## Embedding the neighborhood graph
 
 We suggest embedding the graph in two dimensions using UMAP (McInnes et al., 2018). It is potentially more faithful to the global connectivity of the manifold than tSNE, i.e., it better preserves trajectories. In some occasions, you might still observe disconnected clusters and similar connectivity violations. They can usually be remedied by running:
+
+[scanpy.tl.leiden](https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.leiden.html):
+
+> Cluster cells into subgroups using the Leiden algorithm [Traag18], an improved version of the Louvain algorithm [Blondel08]. It has been proposed for single-cell analysis by [Levine15].
+
+[scanpy.tl.paga](https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.paga.html):
+
+> Mapping out the coarse-grained connectivity structures of complex manifolds [Wolf19].
+>
+> By quantifying the connectivity of partitions (groups, clusters) of the single-cell graph, partition-based graph abstraction (PAGA) generates a much simpler abstracted graph (PAGA graph) of partitions, in which edge weights represent confidence in the presence of connections. By thresholding this confidence in paga(), a much simpler representation of the manifold data is obtained, which is nonetheless faithful to the topology of the manifold.
+>
+> The confidence should be interpreted as the ratio of the actual versus the expected value of connections under the null model of randomly connecting partitions. We do not provide a p-value as this null model does not precisely capture what one would consider "connected" in real data, hence it strongly overestimates the expected value. See an extensive discussion of this in [Wolf19].
+
+[scanpy.tl.umap](https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.umap.html):
+
+> Embed the neighborhood graph using UMAP [McInnes18].
+>
+> UMAP (Uniform Manifold Approximation and Projection) is a manifold learning technique suitable for visualizing high-dimensional data. Besides tending to be faster than tSNE, it optimizes the embedding such that it best reflects the topology of the data, which we represent throughout Scanpy using a neighborhood graph. tSNE, by contrast, optimizes the distribution of nearest-neighbor distances in the embedding such that these best match the distribution of distances in the high-dimensional space. We use the implementation of umap-learn [McInnes18].
 
 ```{python}
 sc.tl.leiden(adata)

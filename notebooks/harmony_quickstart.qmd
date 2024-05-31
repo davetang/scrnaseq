@@ -134,6 +134,62 @@ download_10x(
 )
 ```
 
+Extract data.
+
+```{r extract_tarball}
+extract_tarball <- function(dirname, tarball){
+  if(!dir.exists(dirname)){
+    dir.create(dirname)
+  }
+  cmd <- (paste0("tar -xzf ", tarball, " -C ", dirname))
+  system(cmd)
+}
+
+extract_tarball("../data/jurkat", "../data/jurkat_filtered_gene_bc_matrices.tar.gz")
+extract_tarball("../data/hek293t", "../data/293t_filtered_gene_bc_matrices.tar.gz")
+extract_tarball("../data/jurkat_hek293t", "../data/jurkat:293t_50:50_filtered_gene_bc_matrices.tar.gz")
+```
+
+## Reproduce PCs from downloaded data
+
+```{r}
+library(Seurat)
+jurkat <- Seurat::Read10X("../data/jurkat/filtered_matrices_mex/hg19/")
+hek293t <- Seurat::Read10X("../data/hek293t/filtered_matrices_mex/hg19/")
+mix <- Seurat::Read10X("../data/jurkat_hek293t/filtered_matrices_mex/hg19/")
+
+colnames(jurkat) <- paste0('jurkat_', colnames(jurkat))
+colnames(hek293t) <- paste0('hek293t_', colnames(hek293t))
+colnames(mix) <- paste0('mix_', colnames(mix))
+
+seurat_obj <- CreateSeuratObject(
+  counts = cbind(jurkat, hek293t, mix),
+  project = "Mixture",
+  min.cells = 5
+)
+
+seurat_obj@meta.data$dataset <- c(
+  rep("jurkat", ncol(jurkat)),
+  rep("hek293t", ncol(hek293t)),
+  rep("mix", ncol(mix))
+)
+
+seurat_obj <- SCTransform(seurat_obj) |>
+  RunPCA(npcs = 20, verbose = FALSE) |>
+  RunUMAP(dims = 1:20)
+
+DimPlot(seurat_obj, reduction = "umap", group.by = "dataset", pt.size = .1) + ggtitle("Without harmony")
+```
+
+```{r}
+seurat_obj_harmony <- RunHarmony(seurat_obj, "dataset")
+seurat_obj_harmony <- RunUMAP(seurat_obj_harmony, reduction = "harmony",  dims = 1:20)
+
+DimPlot(seurat_obj_harmony, reduction = "umap", group.by = "dataset", pt.size = .1) + ggtitle("With harmony")
+```
+
+## Packaged data
+
 We library normalized the cells, log transformed the counts, and scaled the 
 genes. Then we performed PCA and kept the top 20 PCs. The PCA embeddings and 
 meta data are available as part of this package. 

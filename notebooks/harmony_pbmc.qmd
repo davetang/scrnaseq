@@ -1,0 +1,57 @@
+---
+title: "Integrate PBMCs using Harmony"
+format: html
+---
+  
+# Integrating PBMC datasets from 10X
+
+```{r}
+library(harmony)
+library(Seurat)
+library(ggplot2)
+```
+
+
+
+```{r}
+pbmc3k_mat <- Seurat::Read10X("../data/pbmc3k/filtered_gene_bc_matrices/hg19/")
+pbmc8k_mat <- Seurat::Read10X("../data/pbmc8k/filtered_gene_bc_matrices/GRCh38/")
+
+colnames(pbmc3k_mat) <- paste0('pbmc3k_', colnames(pbmc3k_mat))
+colnames(pbmc8k_mat) <- paste0('pbmc8k_', colnames(pbmc8k_mat))
+
+common_genes <- intersect(rownames(pbmc3k_mat), rownames(pbmc8k_mat))
+pbmc3k_mat <- pbmc3k_mat[common_genes, ]
+pbmc8k_mat <- pbmc8k_mat[common_genes, ]
+
+seurat_obj <- CreateSeuratObject(
+  counts = cbind(pbmc3k_mat, pbmc8k_mat),
+  project = "PBMC",
+  min.cells = 5
+)
+
+seurat_obj@meta.data$dataset <- c(
+  rep("pbmc3k", ncol(pbmc3k_mat)),
+  rep("pbmc8k", ncol(pbmc8k_mat))
+)
+
+seurat_obj <- SCTransform(seurat_obj) |>
+  RunPCA(npcs = 20, verbose = FALSE) |>
+  RunUMAP(dims = 1:20)
+
+DimPlot(seurat_obj, reduction = "umap", group.by = "dataset", pt.size = .1) + ggtitle("Without harmony")
+```
+
+```{r}
+seurat_obj_harmony <- RunHarmony(seurat_obj, "dataset")
+seurat_obj_harmony <- RunUMAP(seurat_obj_harmony, reduction = "harmony",  dims = 1:20)
+
+DimPlot(seurat_obj_harmony, reduction = "umap", group.by = "dataset", pt.size = .1) + ggtitle("With harmony")
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+
+```

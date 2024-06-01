@@ -2,7 +2,7 @@
 SHELL := /bin/bash
 
 all: data
-data: data/pbmc3k_filtered_gene_bc_matrices.tar.gz data/pbmc3k_raw_gene_bc_matrices.tar.gz data/pbmc3k_analysis.tar.gz data/analysis data/raw_gene_bc_matrices data/filtered_gene_bc_matrices data/HTA08_v01_A05_Science_human_fig1.h5ad data/pbmc3k.h5ad
+data: data/pbmc3k_filtered_gene_bc_matrices.tar.gz data/pbmc3k_raw_gene_bc_matrices.tar.gz data/pbmc3k_analysis.tar.gz data/analysis data/raw_gene_bc_matrices data/filtered_gene_bc_matrices data/HTA08_v01_A05_Science_human_fig1.h5ad data/pbmc3k.h5ad data/pbmc8k_filtered_gene_bc_matrices.tar.gz data/pbmc8k/filtered_gene_bc_matrices
 
 data/pbmc3k_filtered_gene_bc_matrices.tar.gz:
 	wget -O $@ https://cf.10xgenomics.com/samples/cell-exp/1.1.0/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz
@@ -15,6 +15,16 @@ data/pbmc3k_raw_gene_bc_matrices.tar.gz:
 data/pbmc3k_analysis.tar.gz:
 	wget -O $@ https://cf.10xgenomics.com/samples/cell-exp/1.1.0/pbmc3k/pbmc3k_analysis.tar.gz
 	md5sum -c <(printf "0326d4d960fcc15fc228d6fb5f0e9852  data/pbmc3k_analysis.tar.gz\n")
+
+# https://www.10xgenomics.com/datasets/8-k-pbm-cs-from-a-healthy-donor-2-standard-2-1-0
+data/pbmc8k_filtered_gene_bc_matrices.tar.gz:
+	wget -O $@ https://cf.10xgenomics.com/samples/cell-exp/2.1.0/pbmc8k/pbmc8k_filtered_gene_bc_matrices.tar.gz
+	md5sum -c <(printf "cbb3a7553ece7eaddeb8a56df781ccb0  data/pbmc8k_filtered_gene_bc_matrices.tar.gz\n")
+
+data/pbmc8k/filtered_gene_bc_matrices: data/pbmc8k_filtered_gene_bc_matrices.tar.gz
+	mkdir -p data/pbmc8k
+	tar -xf $< -C data/pbmc8k
+	touch $@
 
 data/analysis: data/pbmc3k_analysis.tar.gz
 	tar -xf $< -C data/

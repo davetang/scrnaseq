@@ -24,7 +24,7 @@ import scanpy as sc
 sc.settings.verbosity = 3  # verbosity: errors (0), warnings (1), info (2), hints (3)
 ```
 
-## Load data
+## HTA08
 
 [scanpy.read_h5ad](https://scanpy.readthedocs.io/en/stable/generated/scanpy.read_h5ad.html).
 
@@ -86,3 +86,64 @@ py$adata$obsm['X_umap'] |>
   NULL
 ```
 
+## pbmc3k
+
+Create as per [scanpy.datasets.pbmc3k](https://scanpy.readthedocs.io/en/stable/generated/scanpy.datasets.pbmc3k.html).
+
+```{python}
+pbmc3k = sc.read_10x_mtx(
+    # the directory with the `.mtx` file
+    '../data/filtered_gene_bc_matrices/hg19/',
+    # use gene symbols for the variable names (variables-axis index)
+    var_names='gene_symbols',
+    # write a cache file for faster subsequent reading
+    cache=False,
+)
+
+pbmc3k.var_names_make_unique()  # this is unnecessary if using 'gene_ids'
+pbmc3k.write('../data/pbmc3k_raw.h5ad', compression='gzip')
+```
+
+Read.
+
+```{python}
+pbmc3k = sc.read_h5ad("../data/pbmc3k_raw.h5ad")
+pbmc3k
+```
+
+Convert indexes to lists.
+
+```{python}
+pbmc3k_bc = pbmc3k.obs_names.to_list()
+pbmc3k_genes = pbmc3k.var_names.to_list()
+```
+
+### Create Seurat object from h5ad
+
+Create Seurat object.
+
+```{r h5ad_to_seurat}
+library(Seurat)
+
+count_matrix <- t(py$pbmc3k$X)
+rownames(count_matrix) <- py$pbmc3k_genes
+colnames(count_matrix) <- py$pbmc3k_bc
+
+pbmc3k <- CreateSeuratObject(counts = count_matrix, project = "pbmc3k")
+pbmc3k
+```
+
+Check out counts.
+
+```{r}
+pbmc3k[['RNA']]$counts[1984:1990, 23:45]
+```
+
+Compare with Seurat object created from the 10x matrix.
+
+```{r}
+Read10X(data.dir = "../data/filtered_gene_bc_matrices/hg19/") |>
+  CreateSeuratObject() -> pbmc3k_10x
+
+pbmc3k_10x[['RNA']]$counts[1984:1990, 23:45]
+```

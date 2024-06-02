@@ -5,15 +5,17 @@ format: html
   
 # Integrating PBMC datasets from 10X
 
-```{r}
+```{r init}
 library(harmony)
 library(Seurat)
 library(ggplot2)
+library(Azimuth)
+library(patchwork)
 ```
 
+Create Seurat object.
 
-
-```{r}
+```{r seurat_object}
 pbmc3k_mat <- Seurat::Read10X("../data/pbmc3k/filtered_gene_bc_matrices/hg19/")
 pbmc8k_mat <- Seurat::Read10X("../data/pbmc8k/filtered_gene_bc_matrices/GRCh38/")
 
@@ -34,24 +36,54 @@ seurat_obj@meta.data$dataset <- c(
   rep("pbmc3k", ncol(pbmc3k_mat)),
   rep("pbmc8k", ncol(pbmc8k_mat))
 )
+```
 
-seurat_obj <- SCTransform(seurat_obj) |>
+Annotate.
+
+```{r run_azimuth}
+seurat_obj <- RunAzimuth(seurat_obj, reference = "pbmcref")
+```
+
+
+```{r}
+seurat_obj_no_int <- SCTransform(seurat_obj) |>
   RunPCA(npcs = 20, verbose = FALSE) |>
   RunUMAP(dims = 1:20)
 
-DimPlot(seurat_obj, reduction = "umap", group.by = "dataset", pt.size = .1) + ggtitle("Without harmony")
+DimPlot(seurat_obj_no_int, reduction = "umap", group.by = "dataset", pt.size = .1) + ggtitle("Without harmony")
 ```
 
 ```{r}
-seurat_obj_harmony <- RunHarmony(seurat_obj, "dataset")
-seurat_obj_harmony <- RunUMAP(seurat_obj_harmony, reduction = "harmony",  dims = 1:20)
+seurat_obj_harmony <- SCTransform(seurat_obj) |>
+  RunPCA(npcs = 20, verbose = FALSE) |>
+  RunHarmony("dataset") |>
+  RunUMAP(reduction = "harmony",  dims = 1:20)
 
 DimPlot(seurat_obj_harmony, reduction = "umap", group.by = "dataset", pt.size = .1) + ggtitle("With harmony")
+```
+
+```{r}
+DimPlot(seurat_obj_harmony, reduction = "umap", group.by = "predicted.celltype.l1", pt.size = .1) + ggtitle("With harmony")
+```
+
+Remove B cells from pbmc3k dataset and integrate.
+
+```{r fig.width=8, fig.height=4}
+pbmc3k_b_cells <- seurat_obj@meta.data[, "predicted.celltype.l1"] == "B" & seurat_obj@meta.data[, "dataset"]  == "pbmc3k"
+seurat_obj_subset <- seurat_obj[, !pbmc3k_b_cells] |>
+  SCTransform() |>
+  RunPCA(npcs = 20, verbose = FALSE) |>
+  RunHarmony("dataset") |>
+  RunUMAP(reduction = "harmony",  dims = 1:20)
+
+p1 <- DimPlot(seurat_obj_subset, reduction = "umap", group.by = "dataset", pt.size = .1) + ggtitle("No B cells")
+p2 <- DimPlot(seurat_obj_subset, reduction = "umap", group.by = "predicted.celltype.l1", pt.size = .1) + ggtitle("No B cells")
+
+p1 + p2
 ```
 
 # Session Info
 
 ```{r}
 sessionInfo()
-
 ```

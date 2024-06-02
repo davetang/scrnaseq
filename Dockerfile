@@ -58,5 +58,6 @@ RUN R -q -e 'remotes::install_github("satijalab/seurat-wrappers")'
 RUN R -q -e 'library(SeuratWrappers)'
 RUN R -q -e 'remotes::install_github("satijalab/azimuth", ref = "master")'
 RUN R -q -e 'library(Azimuth)'
+RUN R -q -e 'BiocManager::install("batchelor")'
 
 COPY --chown=rstudio:rstudio rstudio-prefs.json /home/rstudio/.config/rstudio

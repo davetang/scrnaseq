@@ -46,10 +46,10 @@ Objects that {reticulate} doesn't know how to convert are presented to the Pytho
 type(r.pbmc)
 ```
 
-Store counts separately.
+Store SCT counts separately.
 
 ```{r pbmc_counts}
-pbmc_counts_transposed <- t(pbmc[['RNA']]$counts)
+pbmc_counts_transposed <- t(pbmc[['SCT']]$counts)
 ```
 
 Use sparse matrix to start building `adata`.
@@ -62,8 +62,8 @@ adata.X
 Store cell barcodes and gene symbols.
 
 ```{r cell_barcodes_and_gene_symbols}
-cell_barcodes <- row.names(pbmc@meta.data)
-gene_symbols <- rownames(pbmc[['RNA']])
+cell_barcodes <- rownames(pbmc_counts_transposed)
+gene_symbols <- colnames(pbmc_counts_transposed)
 ```
 
 Add `obs_names` and `var_names`.
@@ -107,4 +107,19 @@ adata
 
 ```{python}
 sc.pl.umap(adata, color = "SCT_snn_res.0.8")
+```
+
+Layers.
+
+```{r sct_layers}
+pbmc_sct_counts <- t(pbmc[['SCT']]$counts)
+pbmc_sct_data <- t(pbmc[['SCT']]$data)
+```
+
+Add layers.
+
+```{python}
+adata.layers["counts"] = r.pbmc_sct_counts
+adata.layers["data"] = r.pbmc_sct_data
+adata
 ```

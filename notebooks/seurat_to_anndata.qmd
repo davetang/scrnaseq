@@ -1,0 +1,110 @@
+---
+title: "Create an anndata object from a SeuratObject"
+format: html
+---
+
+```{r init, echo=FALSE}
+library(reticulate)
+use_python("/usr/bin/python3")
+reticulate::py_config()
+```
+
+# SeuratObject
+
+Create Seurat object.
+
+```{r seurat_workflow, message=FALSE, warning=FALSE}
+library(Seurat)
+Read10X(data.dir = "../data/filtered_gene_bc_matrices/hg19/") |>
+  CreateSeuratObject() |>
+  PercentageFeatureSet(pattern = "^MT-", col.name = "percent.mt") |>
+  SCTransform(vars.to.regress = "percent.mt") |>
+  RunPCA() |>
+  FindNeighbors(dims = 1:30) |>
+  RunUMAP(dims = 1:30) |>
+  FindClusters() -> pbmc
+
+pbmc
+```
+
+# anndata
+
+Load Python modules.
+
+```{python}
+import scanpy as sc
+import numpy as np
+import pandas as pd
+import anndata as ad
+from scipy.sparse import csr_matrix
+print(ad.__version__)
+```
+
+Objects that {reticulate} doesn't know how to convert are presented to the Python runtime as a PyCapsule (an opaque pointer to the underlying R object).
+
+```{python}
+type(r.pbmc)
+```
+
+Store counts separately.
+
+```{r pbmc_counts}
+pbmc_counts_transposed <- t(pbmc[['RNA']]$counts)
+```
+
+Use sparse matrix to start building `adata`.
+
+```{python}
+adata = ad.AnnData(r.pbmc_counts_transposed)
+adata.X
+```
+
+Store cell barcodes and gene symbols.
+
+```{r cell_barcodes_and_gene_symbols}
+cell_barcodes <- row.names(pbmc@meta.data)
+gene_symbols <- rownames(pbmc[['RNA']])
+```
+
+Add `obs_names` and `var_names`.
+
+```{python}
+adata.obs_names = r.cell_barcodes
+adata.var_names = r.gene_symbols
+print(adata.obs_names[:10])
+```
+
+Metadata.
+
+```{r}
+metadata <- pbmc@meta.data
+```
+
+Add metadata.
+
+```{python}
+adata.obs = r.metadata
+adata
+```
+
+Store cell embeddings.
+
+```{r}
+pca_cell_embeddings <- pbmc@reductions$pca@cell.embeddings
+umap_cell_embeddings <- pbmc@reductions$umap@cell.embeddings
+```
+
+Add cell embeddings.
+
+```{python}
+adata.obsm["X_umap"] = r.umap_cell_embeddings
+adata.obsm["X_pca"] = r.pca_cell_embeddings
+
+adata
+```
+
+[sc.pl.umap](https://scanpy.readthedocs.io/en/stable/api/generated/scanpy.pl.umap.html).
+
+```{python}
+sc.pl.umap(adata, color = "SCT_snn_res.0.8")
+```

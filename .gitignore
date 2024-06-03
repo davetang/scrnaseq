@@ -11,3 +11,16 @@ data/raw_gene_bc_matrices/
 notebooks/cache/
 results/pbmc3k.h5ad
 data/*.h5ad
+data/293t_filtered_gene_bc_matrices.tar.gz
+data/GSE100866_CBMC_8K_13AB_10X-ADT_umi.csv.gz
+data/GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz
+data/hek293t/
+data/jurkat/
+data/jurkat:293t_50:50_filtered_gene_bc_matrices.tar.gz
+data/jurkat_filtered_gene_bc_matrices.tar.gz
+data/jurkat_hek293t/
+data/pbmc3k/
+data/pbmc8k/
+data/pbmc8k_filtered_gene_bc_matrices.tar.gz
+data/pbmc_10k_protein/
+data/pbmc_10k_protein_v3_filtered_feature_bc_matrix.tar.gz

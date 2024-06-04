@@ -1,6 +1,6 @@
 # Glossary
 
-From [Best practices for single-cell analysis across modalities](https://www.nature.com/articles/s41576-023-00586-w).
+Initiated from [Best practices for single-cell analysis across modalities](https://www.nature.com/articles/s41576-023-00586-w) and gradually expanded upon.
 
 * Adaptive immune receptor (AIR) - Transmembrane complex of proteins expressed on T and B cells that is key for the recognition of potential hazardous antigens and pathogens invading the body.
 
@@ -35,6 +35,8 @@ From [Best practices for single-cell analysis across modalities](https://www.nat
 * Confounding sources of variation - Technical artefacts that arise from library preparation and sequencing, and biological confounders such as cell cycle status, which cause systematic bias and may distort biological findings.
 
 * Differential gene expression (DGE) - The inference of statistically significant differences in expression between groups such as healthy and diseased.
+
+* Embeddings - An embedding is a mapping of data from one space to another, often to a space of lower dimensions. This transformation aims to preserve important properties of the data while making it easier to work with.
 
 * Epitopes - The parts of antigens that are recognized by antibodies, B cells or T cells to potentially stimulate immune responses.
 
@@ -77,6 +79,8 @@ From [Best practices for single-cell analysis across modalities](https://www.nat
 * Trajectory inference - Also known as pseudotime analysis. Ordering of cells along a trajectory based on gene expression similarity.
 
 * Transcription factor motif (TF motif) - DNA sequence pattern that is specifically recognized by a sequence-specific TF. It is commonly represented as a logo diagram representing the most informative DNA positions by height.
+
+* Uniform Manifold Approximation and Projection (UMAP) - A technique used for dimensionality reduction that aims to preserve the topological structure of the data, focusing on preserving both local and global relationships. It is particularly designed for high-dimensional data visualisation. UMAP typically uses PCA as a preprocessing step to reduce the initial dimensionality of the data. This is particularly useful when the dimensionality of the original data is very high, as it can speed up the UMAP algorithm without significantly losing important structure.
 
 * Variational autoencoders - A generative artificial neural network architecture that allows for statistical inference. Input data are sampled from a parameterized distribution (prior), and an encoder and decoder are trained jointly to minimize the reconstruction error between the updated prior probability (posterior) and its parametric approximation (variational posterior).
 

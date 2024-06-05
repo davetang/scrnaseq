@@ -1,0 +1,70 @@
+---
+title: "Merging Seurat objects"
+format: html
+---
+
+# SeuratObject
+
+Create two raw Seurat object.
+
+```{r create_raw_seurat_objects}
+library(Seurat)
+
+Read10X(data.dir = "../data/pbmc3k/filtered_gene_bc_matrices/hg19/") |>
+  CreateSeuratObject(project = "pbmc3k") -> pbmc3k_raw
+
+Read10X(data.dir = "../data/pbmc8k/filtered_gene_bc_matrices/GRCh38/") |>
+  CreateSeuratObject(project = "pbmc8k") -> pbmc8k_raw
+
+pbmc3k_raw
+pbmc8k_raw
+```
+
+## Merge two raw Seurat objects
+
+Note that the number of features is now larger than the number of features in each original dataset.
+
+```{r pbmc_raw_combined}
+pbmc_raw_combined <- merge(pbmc3k_raw, y = pbmc8k_raw, add.cell.ids = c("3k", "8k"), project = "pbmc11k")
+pbmc_raw_combined
+```
+
+This is because the merge made a union.
+
+```{r gene_union}
+length(union(rownames(pbmc3k_raw[['RNA']]$counts), rownames(pbmc8k_raw[['RNA']]$counts)))
+```
+
+## Merge two processed Seurat objects
+
+Function to run workflow.
+
+```{r seurat_workflow, message=FALSE, warning=FALSE}
+run_seurat_wf <- function(path_to_matrix_dir){
+  Read10X(data.dir = path_to_matrix_dir) |>
+    CreateSeuratObject() |>
+    PercentageFeatureSet(pattern = "^MT-", col.name = "percent.mt") |>
+    SCTransform(vars.to.regress = "percent.mt") |>
+    RunPCA() |>
+    FindNeighbors(dims = 1:30) |>
+    RunUMAP(dims = 1:30) |>
+    FindClusters()
+}
+```
+
+Create two processed Seurat objects.
+
+```{r create_processed_seurat_objects}
+pbmc3k <- run_seurat_wf("../data/pbmc3k/filtered_gene_bc_matrices/hg19/")
+pbmc8k <- run_seurat_wf("../data/pbmc8k/filtered_gene_bc_matrices/GRCh38/")
+
+pbmc3k
+pbmc8k
+```
+
+Note that the merge removed the cell embeddings.
+
+```{r pbmc_combined}
+pbmc_combined <- merge(pbmc3k, y = pbmc8k, add.cell.ids = c("3k", "8k"), project = "pbmc11k")
+pbmc_combined
+```

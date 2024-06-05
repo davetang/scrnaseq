@@ -94,15 +94,16 @@ del adata
 gc.collect()
 ```
 
-Run Seurat workflow.
+Run Seurat workflow on a subset of the cells.
 
-```{r seurat_workflow}
-PercentageFeatureSet(object = seurat_obj, pattern = "^MT-", col.name = "percent.mt") |>
-  SCTransform(vars.to.regress = "percent.mt") |>
+```{r seurat_workflow, eval=FALSE}
+subset(seurat_obj, subset = method == "3GEX") |>
+  PercentageFeatureSet(pattern = "^MT-", col.name = "percent.mt") |>
+  SCTransform() |>
   RunPCA() |>
   FindNeighbors(dims = 1:30) |>
   RunUMAP(dims = 1:30) |>
-  FindClusters() -> seurat_obj
+  FindClusters() -> seurat_obj_3gex
 
-seurat_obj
+seurat_obj_3gex
 ```

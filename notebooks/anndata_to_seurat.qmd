@@ -1,0 +1,108 @@
+---
+title: "AnnData to Seurat"
+format: html
+jupyter: python3
+---
+
+# AnnData
+
+## Initialise
+
+Use [reticulate](https://rstudio.github.io/reticulate/).
+
+```{r load_reticulate}
+library(reticulate)
+use_python("/usr/bin/python3")
+reticulate::py_config()
+```
+
+Load Python modules.
+
+```{python}
+import pandas as pd
+import scanpy as sc
+sc.settings.verbosity = 3  # verbosity: errors (0), warnings (1), info (2), hints (3)
+```
+
+## Load AnnData
+
+[scanpy.read_h5ad](https://scanpy.readthedocs.io/en/stable/generated/scanpy.read_h5ad.html).
+
+```{python}
+adata = sc.read_h5ad("../data/HTA07.A01.v02.entire_data_raw_count.h5ad")
+adata.var_names_make_unique()
+
+adata
+```
+
+Convert indexes to lists.
+
+```{python}
+adata_bc = adata.obs_names.to_list()
+adata_genes = adata.var_names.to_list()
+```
+
+## Create Seurat object from h5ad
+
+Create Seurat object.
+
+```{r h5ad_to_seurat}
+library(Seurat)
+
+stopifnot(
+  length(py$adata_genes) == length(unique(py$adata_genes))
+)
+
+count_matrix <- t(py$adata$X)
+rownames(count_matrix) <- py$adata_genes
+colnames(count_matrix) <- py$adata_bc
+
+seurat_obj <- CreateSeuratObject(counts = count_matrix)
+seurat_obj
+```
+
+Add metadata.
+
+```{r add_meta_data}
+seurat_obj <- AddMetaData(object = seurat_obj, metadata = py$adata$obs)
+seurat_obj@meta.data
+```
+
+Remove `count_matrix` and collect memory.
+
+```{r rm_count_matrix}
+rm(count_matrix)
+gc()
+```
+
+Check out some counts.
+
+```{r}
+seurat_obj[['RNA']]$counts[1:6, 100:102]
+```
+Indexing into AnnData will assume that integer arguments to [] behave like .iloc in pandas, whereas string arguments behave like .loc. AnnData always assumes string indices.
+
+```{r}
+py$adata[99:102, 0:6]$X
+```
+
+Remove adata and collect memory.
+
+```{python}
+import gc
+del adata
+gc.collect()
+```
+
+Run Seurat workflow.
+
+```{r seurat_workflow}
+PercentageFeatureSet(object = seurat_obj, pattern = "^MT-", col.name = "percent.mt") |>
+  SCTransform(vars.to.regress = "percent.mt") |>
+  RunPCA() |>
+  FindNeighbors(dims = 1:30) |>
+  RunUMAP(dims = 1:30) |>
+  FindClusters() -> seurat_obj
+
+seurat_obj
+```

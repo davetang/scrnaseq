@@ -48,6 +48,19 @@ adata = sc.read_10x_mtx(
 adata
 ```
 
+Matrix shape.
+
+```{python}
+adata.X.shape
+```
+
+Make [another layer](https://github.com/scverse/anndata/issues/559#issuecomment-828095911) to save the raw matrix.
+
+```{python}
+adata.layers["raw_counts"] = adata.X.copy()
+adata
+```
+
 ## Pre-processing
 
 Show those genes that yield the highest fraction of counts in each single cell, across all cells.
@@ -61,6 +74,13 @@ Basic filtering:
 ```{python}
 sc.pp.filter_cells(adata, min_genes=200)
 sc.pp.filter_genes(adata, min_cells=3)
+```
+
+After filtering the raw matrix and layer is now smaller.
+
+```{python}
+adata.X.shape
+adata.layers['raw_counts'].shape
 ```
 
 With pp.calculate_qc_metrics, we can compute many metrics very efficiently.
@@ -100,6 +120,8 @@ Actually do the filtering by slicing the AnnData object.
 ```{python}
 adata = adata[adata.obs.n_genes_by_counts < 2500, :]
 adata = adata[adata.obs.pct_counts_mt < 5, :].copy()
+
+adata.X.shape
 ```
 
 Total-count normalize (library-size correct) the data matrix $X$ to 10,000 reads per cell, so that counts become comparable among cells.
@@ -128,6 +150,7 @@ Set the `.raw` attribute of the `AnnData` object to the normalized and logarithm
 
 ```{python}
 adata.raw = adata
+adata.raw
 ```
 
 Actually do the filtering.
@@ -378,6 +401,7 @@ adata.write(results_file, compression="gzip")
 ```{python}
 import anndata as ad
 
+results_file = "../results/pbmc3k.h5ad"
 adata = sc.read(results_file)
 adata
 ```
@@ -440,6 +464,12 @@ Access using R.
 py$adata$obs
 ```
 
+Genes.
+
+```{r}
+py$adata$var
+```
+
 # Using Seurat
 
 [Seurat using sctransform](https://satijalab.org/seurat/articles/sctransform_vignette.html).
@@ -451,6 +481,8 @@ library(sctransform)
 ```
 
 Entire Seurat workflow.
+
+
 
 ```{r seurat_workflow}
 Read10X(data.dir = "../data/filtered_gene_bc_matrices/hg19/") |>

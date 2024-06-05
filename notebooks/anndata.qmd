@@ -33,6 +33,18 @@ adata = sc.read_h5ad("../data/HTA08_v01_A05_Science_human_fig1.h5ad")
 adata
 ```
 
+Raw counts.
+
+```{python}
+adata_raw = sc.read_h5ad("../data/HTA07.A01.v02.entire_data_raw_count.h5ad")
+adata_raw
+```
+
+```{python}
+adata.X
+adata_raw.X
+```
+
 ## Access data
 
 Raw data.
@@ -48,7 +60,6 @@ adata.obs_names
 adata.var_names
 ```
 
-
 [Compressed sparse matrix](https://en.wikipedia.org/wiki/Sparse_matrix)
 
 ```{r}
@@ -62,6 +73,12 @@ Observational data.
 
 ```{r adata_obs}
 py$adata$obs
+```
+
+Observational data on the raw data.
+
+```{r adata_obs}
+py$adata_raw$obs
 ```
 
 UMAP coordinates.

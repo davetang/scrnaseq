@@ -1,0 +1,74 @@
+---
+title: "Human PBMC profiled on different technologies"
+format: html
+---
+
+## Dataset
+
+Data from "[Systematic comparison of single-cell and single-nucleus RNA-sequencing methods](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7289686/)", which is a dataset of human PBMC profiled with seven different technologies. The data is available as part of the [SeuratData](https://github.com/satijalab/seurat-data) package. 
+
+```{r init}
+library(Seurat)
+library(SeuratData)
+```
+
+Install the dataset.
+
+```{r installdata, include=FALSE, eval=TRUE}
+options(timeout = 1000)
+InstallData("pbmcsca")
+```
+
+Load in the pbmc systematic comparative analysis dataset.
+
+```{r load, message=FALSE}
+seurat_obj <- LoadData("pbmcsca")
+seurat_obj
+```
+
+## Metadata
+
+Number of cells per technology.
+
+```{r table_of_methods}
+table(seurat_obj@meta.data$Method)
+```
+
+## Assays
+
+Seurat v5 uses the Assay5 class. Assay5 objects are more flexible, and can be used to store only a data layer, with no counts data. This can be used to create Seurat objects that require less space
+
+```{r getassays}
+sapply(Assays(seurat_obj), \(x) class(seurat_obj[[x]]))
+```
+
+## Layers in the Seurat v5 object
+
+Seurat v5 assays store data in layers. These layers can store raw, un-normalized counts (`layer='counts'`), normalized data (`layer='data'`), or z-scored/variance-stabilized data (`layer='scale.data'`).
+
+Extract [layer](https://satijalab.org/seurat/articles/seurat5_essential_commands#working-with-layers) names:
+
+```{r layer_names}
+Layers(seurat_obj[["RNA"]])
+```
+
+We can split the layers into groups. The object contains data from nine different batches (stored in the `Method` column in the object metadata), representing seven different technologies.
+
+```{r splitassay}
+seurat_obj[["RNA"]] <- split(seurat_obj[["RNA"]], f = seurat_obj$Method)
+Layers(seurat_obj[["RNA"]])
+```
+After splitting, there are now 18 layers (a `counts` and `data` layer for each batch).
+
+Use `JoinLayers` to join them back up.
+
+```{r joinlayers}
+seurat_obj[["RNA"]] <- JoinLayers(seurat_obj[["RNA"]])
+Layers(seurat_obj[["RNA"]])
+```
+
+## Session info
+
+```{r}
+sessionInfo()
+```

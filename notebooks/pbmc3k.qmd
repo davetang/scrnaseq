@@ -4,11 +4,18 @@ format: html
 jupyter: python3
 ---
 
-# Using scanpy
+# 3k PBMCs from a Healthy Donor
 
-[Preprocessing and clustering 3k PBMCs](https://scanpy-tutorials.readthedocs.io/en/latest/pbmc3k.html)
+[Single Cell Gene Expression Dataset](https://www.10xgenomics.com/datasets/3-k-pbm-cs-from-a-healthy-donor-1-standard-1-1-0) by Cell Ranger 1.1.0. Peripheral blood mononuclear cells (PBMCs) from a healthy donor (same donor as pbmc6k). PBMCs are primary cells with relatively small amounts of RNA (~1pg RNA/cell).
 
-## Initialise
+* 2,700 cells detected
+* Sequenced on Illumina NextSeq 500 with ~69,000 reads per cell
+* 98bp read1 (transcript), 8bp I5 sample barcode, 14bp I7 GemCode barcode and 10bp read2 (UMI)
+* Analysis run with --cells=3000
+
+Published on May 26th, 2016 and licensed under the Creative Commons Attribution license.
+
+## scanpy
 
 Use [reticulate](https://rstudio.github.io/reticulate/).
 
@@ -36,6 +43,8 @@ results_file = "../results/pbmc3k.h5ad"
 
 ## Load data
 
+[Preprocessing and clustering 3k PBMCs](https://scanpy-tutorials.readthedocs.io/en/latest/pbmc3k.html)
+
 Read in the count matrix into an `AnnData` object, which holds many slots for annotations and different representations of the data. It also comes with its own HDF5-based file format; `.h5ad`; see [scanpy.read_10x_mtx](https://scanpy.readthedocs.io/en/stable/generated/scanpy.read_10x_mtx.html) for more information.
 
 ```{python}
@@ -54,7 +63,7 @@ Matrix shape.
 adata.X.shape
 ```
 
-Make [another layer](https://github.com/scverse/anndata/issues/559#issuecomment-828095911) to save the raw matrix.
+Make [another layer](https://github.com/scverse/anndata/issues/559#issuecomment-828095911) to save the raw matrix for testing purposes.
 
 ```{python}
 adata.layers["raw_counts"] = adata.X.copy()
@@ -71,6 +80,9 @@ sc.pl.highest_expr_genes(adata, n_top=20)
 
 Basic filtering:
 
+* [scanpy.pp.filter_cells](https://scanpy.readthedocs.io/en/stable/generated/scanpy.pp.filter_cells.html) - filter cell outliers based on counts and numbers of genes expressed. For instance, only keep cells with at least `min_counts` counts or `min_genes` genes expressed. This is to filter measurement outliers, i.e. “unreliable” observations. Only provide one of the optional parameters min_counts, min_genes, max_counts, max_genes per call.
+* [scanpy.pp.filter_genes](https://scanpy.readthedocs.io/en/stable/generated/scanpy.pp.filter_genes.html) - Filter genes based on number of cells or counts. Keep genes that have at least `min_counts` counts or are expressed in at least `min_cells` cells or have at most `max_counts` counts or are expressed in at most `max_cells` cells. Only provide one of the optional parameters min_counts, min_cells, max_counts, max_cells per call.
+
 ```{python}
 sc.pp.filter_cells(adata, min_genes=200)
 sc.pp.filter_genes(adata, min_cells=3)
@@ -83,10 +95,11 @@ adata.X.shape
 adata.layers['raw_counts'].shape
 ```
 
-With pp.calculate_qc_metrics, we can compute many metrics very efficiently.
+[scanpy.pp.calculate_qc_metrics](https://scanpy.readthedocs.io/en/latest/generated/scanpy.pp.calculate_qc_metrics.html) - Calculates a number of qc metrics for an AnnData object. Largely based on `calculateQCMetrics` from {scater} [McCarthy et al., 2017]. Currently is most efficient on a sparse CSR or dense matrix.
+
+Annotate the group of mitochondrial genes as "mt".
 
 ```{python}
-# annotate the group of mitochondrial genes as "mt"
 adata.var["mt"] = adata.var_names.str.startswith("MT-")
 sc.pp.calculate_qc_metrics(
     adata, qc_vars=["mt"], percent_top=None, log1p=False, inplace=True
@@ -115,25 +128,33 @@ sc.pl.scatter(adata, x="total_counts", y="pct_counts_mt")
 sc.pl.scatter(adata, x="total_counts", y="n_genes_by_counts")
 ```
 
-Actually do the filtering by slicing the AnnData object.
+Actually do the filtering by slicing the AnnData object. (It is unclear why there is a .copy method for the second filtering step.)
 
 ```{python}
 adata = adata[adata.obs.n_genes_by_counts < 2500, :]
 adata = adata[adata.obs.pct_counts_mt < 5, :].copy()
 
-adata.X.shape
+adata
 ```
 
 Total-count normalize (library-size correct) the data matrix $X$ to 10,000 reads per cell, so that counts become comparable among cells.
 
+* [scanpy.pp.normalize_total](https://scanpy.readthedocs.io/en/stable/generated/scanpy.pp.normalize_total.html) - Normalize each cell by total counts over all genes, so that every cell has the same total count after normalization. If choosing `target_sum=1e6`, this is CPM normalization. If `exclude_highly_expressed=True`, very highly expressed genes are excluded from the computation of the normalization factor (size factor) for each cell. This is meaningful as these can strongly influence the resulting normalized values for all other genes [Weinreb17].
+
+Note that `adata.X` now contains the normalised data.
+
 ```{python}
 sc.pp.normalize_total(adata, target_sum=1e4)
+
+adata.X[56:60, 10:12].toarray()
+adata.layers['raw_counts'][56:60, 10:12].toarray()
 ```
 
-Logarithmize the data:
+Logarithmize the data.
 
 ```{python}
 sc.pp.log1p(adata)
+adata.X[56:60, 10:12].toarray()
 ```
 
 Identify highly-variable genes.
@@ -141,6 +162,8 @@ Identify highly-variable genes.
 ```{python}
 sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
 ```
+
+Plot highly variable genes.
 
 ```{python}
 sc.pl.highly_variable_genes(adata)
@@ -153,10 +176,13 @@ adata.raw = adata
 adata.raw
 ```
 
-Actually do the filtering.
+Actually do the filtering. `adata` now contains a smaller subset of the original data but `adata.raw` holds all data before subsetting on the highly variable genes.
 
 ```{python}
 adata = adata[:, adata.var.highly_variable]
+
+adata
+adata.raw.X
 ```
 
 Regress out effects of total counts per cell and the percentage of mitochondrial genes expressed. Scale the data to unit variance.
@@ -179,7 +205,7 @@ Reduce the dimensionality of the data by running principal component analysis (P
 sc.tl.pca(adata, svd_solver="arpack")
 ```
 
-Principal components store in `X_umap`.
+Principal components stored in `X_pca`.
 
 ```{python}
 adata.obsm['X_pca'].shape
@@ -207,7 +233,7 @@ adata.write(results_file)
 
 ## Computing the neighborhood graph
 
-Let us compute the neighborhood graph of cells using the PCA representation of the data matrix. You might simply use default values here. For the sake of reproducing Seurat’s results, let’s take the following values.
+Let us compute the neighborhood graph of cells using the PCA representation of the data matrix. You might simply use default values here. For the sake of reproducing Seurat's results, we'll use `n_neighbors=10` and `n_pcs=40`.
 
 [scanpy.pp.neighbors](https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pp.neighbors.html):
 
@@ -215,11 +241,17 @@ Let us compute the neighborhood graph of cells using the PCA representation of t
 >
 > The neighbor search efficiency of this heavily relies on UMAP [McInnes et al., 2018], which also provides a method for estimating connectivities of data points - the connectivity of the manifold (method=='umap'). If method=='gauss', connectivities are computed according to Coifman et al. [2005], in the adaption of Haghverdi et al. [2016].
 
-* `n_neighbors` (default: 15) - The size of local neighborhood (in terms of number of neighboring data points) used for manifold approximation. Larger values result in more global views of the manifold, while smaller values result in more local data being preserved. In general values should be in the range 2 to 100. If knn is True, number of nearest neighbors to be searched. If knn is False, a Gaussian kernel width is set to the distance of the n_neighbors neighbor.
+* `n_neighbors` (default: 15) - The size of local neighborhood (in terms of number of neighboring data points) used for manifold approximation. Larger values result in more global views of the manifold, while smaller values result in more local data being preserved. In general values should be in the range 2 to 100. If `knn` is `True`, number of nearest neighbors to be searched. If `knn` is `False`, a Gaussian kernel width is set to the distance of the `n_neighbors` neighbor.
 * `n_pcs` - Use this many PCs.
 
 ```{python}
 sc.pp.neighbors(adata, n_neighbors=10, n_pcs=40)
+```
+
+Pairwise distances between each cell.
+
+```{python}
+adata.obsp['distances']
 ```
 
 ## Embedding the neighborhood graph
@@ -251,9 +283,22 @@ sc.pl.paga(adata, plot=False)  # remove `plot=False` if you want to see the coar
 sc.tl.umap(adata, init_pos='paga')
 ```
 
+[scanpy.tl.umap](https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.umap.html):
+
+* `min_dist` float (default: 0.5) - The effective minimum distance between embedded points. Smaller values will result in a more clustered/clumped embedding where nearby points on the manifold are drawn closer together, while larger values will result on a more even dispersal of points. The value should be set relative to the spread value, which determines the scale at which embedded points will be spread out. The default of in the umap-learn package is 0.1.
+* `spread` float (default: 1.0) - The effective scale of embedded points. In combination with `min_dist` this determines how clustered/clumped the embedded points are.
+* `init_pos` Union[Literal['paga', 'spectral', 'random'], ndarray, None] (default: 'spectral') - How to initialize the low dimensional embedding. Called init in the original UMAP. Options are:
+    * Any key for adata.obsm.
+    * `paga`: positions from paga().
+    * `spectral`: use a spectral embedding of the graph.
+    * `random`: assign initial embedding positions at random.
+    * A numpy array of initial embedding positions.
+
 ```{python}
 sc.tl.umap(adata)
 ```
+
+[scanpy.pl.umap](https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.umap.html) - Scatter plot in UMAP basis.
 
 ```{python}
 sc.pl.umap(adata, color=["CST3", "NKG7", "PPBP"])
@@ -269,6 +314,13 @@ sc.pl.umap(adata, color=["CST3", "NKG7", "PPBP"], use_raw=False)
 
 As with Seurat and many other frameworks, we recommend the Leiden graph-clustering method (community detection based on optimizing modularity) by Traag et al. (2018). Note that Leiden clustering directly clusters the neighborhood graph of cells, which we already computed in the previous section.
 
+* [scanpy.tl.leiden](https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.leiden.html) - This requires having ran `neighbors()` or `bbknn()` first.
+    * `resolution` float (default: 1) - A parameter value controlling the coarseness of the clustering. Higher values lead to more clusters. Set to None if overriding partition_type to one that doesn’t accept a resolution_parameter.
+    * `random_state` Union[int, RandomState, None] (default: 0) - Change the initialization of the optimization.
+    * `flavor` Literal['leidenalg', 'ipgraph'] (default: 'leidenalg') - Which package’s implementation to use.
+    * `n_iterations` int (default: -1) - How many iterations of the Leiden clustering algorithm to perform. Positive values above 2 define the total number of iterations to perform, -1 has the algorithm run until it reaches its optimal clustering. 2 is faster and the default for underlying packages.
+    * `directed` bool | None (default: None) - Whether to treat the graph as directed or undirected.
+
 ```{python}
 sc.tl.leiden(
     adata,
@@ -280,6 +332,8 @@ sc.tl.leiden(
 )
 ```
 
+Plot UMAP and colour by Leiden clusters.
+
 ```{python}
 sc.pl.umap(adata, color=["leiden", "CST3", "NKG7"])
 ```
@@ -288,13 +342,21 @@ sc.pl.umap(adata, color=["leiden", "CST3", "NKG7"])
 
 Let us compute a ranking for the highly differential genes in each cluster. For this, by default, the `.raw` attribute of `AnnData` is used in case it has been initialized before. The simplest and fastest method to do so is the t-test.
 
+* [scanpy.tl.rank_genes_groups](https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.rank_genes_groups.html) - Rank genes for characterizing groups. Expects logarithmized data. The accepted parameters in order are:
+    * adata AnnData - Annotated data matrix.
+    * groupby str - The key of the observations grouping to consider.
+    * layer str | None (default: None) - Key from adata.layers whose value will be used to perform tests on.
+    * method Optional[Literal['logreg', 't-test', 'wilcoxon', 't-test_overestim_var']] (default: None) - The default method is 't-test', 't-test_overestim_var' overestimates variance of each group, 'wilcoxon' uses Wilcoxon rank-sum, 'logreg' uses logistic regression. See [Ntranos18], here and here, for why this is meaningful.
+
 ```{python}
 sc.tl.rank_genes_groups(adata, "leiden", method="t-test")
 sc.pl.rank_genes_groups(adata, n_genes=25, sharey=False)
 ```
 
+Reduce the verbosity.
+
 ```{python}
-sc.settings.verbosity = 2  # reduce the verbosity
+sc.settings.verbosity = 2
 ```
 
 The result of a Wilcoxon rank-sum (Mann-Whitney-U) test is very similar. We recommend using the latter in publications, see e.g., Sonison & Robinson (2018). You might also consider much more powerful differential testing packages like MAST, limma, DESeq2 and, for python, the recent diffxpy.
@@ -314,7 +376,7 @@ marker_genes = [
 ]
 ```
 
-Show the 10 top ranked genes per cluster 0, 1, …, 7 in a dataframe.
+Show the 10 top ranked genes per cluster 0, 1, ..., 7 in a dataframe.
 
 ```{python}
 pd.DataFrame(adata.uns["rank_genes_groups"]["names"]).head(5)
@@ -334,7 +396,10 @@ pd.DataFrame(
 ).head(5)
 ```
 
-Compare to a single cluster:
+Compare to cluster 0 to cluster 1.
+
+* `groups` Union[Literal['all'], Iterable[str]] (default: 'all') - Subset of groups, e.g. ['g1', 'g2', 'g3'], to which comparison shall be restricted, or 'all' (default), for all groups. Note that if reference='rest' all groups will still be used as the reference, not just those specified in groups.
+* `reference` str (default: 'rest') - If 'rest', compare each group to the union of the rest of the group. If a group identifier, compare with respect to this group.
 
 ```{python}
 sc.tl.rank_genes_groups(adata, "leiden", groups=["0"], reference="1", method="wilcoxon")
@@ -347,7 +412,7 @@ If you want to compare a certain gene across groups, use the following.
 sc.pl.violin(adata, ["CST3", "NKG7", "PPBP"], groupby="leiden")
 ```
 
-Actually mark the cell types.
+Rename clusters by the cell types.
 
 ```{python}
 new_cluster_names = [
@@ -369,7 +434,7 @@ sc.pl.umap(
 )
 ```
 
-Now that we annotated the cell types, let us visualize the marker genes.
+Now that we annotated the cell types, visualize the marker genes in a dot plot.
 
 ```{python}
 sc.pl.dotplot(adata, marker_genes, groupby="leiden");
